@@ -1,9 +1,7 @@
-
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-## Define the Transformer Input Layer
 class TokenEmbedding(layers.Layer):
     def __init__(self, num_vocab=98, maxlen=100, num_hid=40):
         super().__init__()
@@ -19,7 +17,6 @@ class TokenEmbedding(layers.Layer):
 
 
 def shape_list(x, out_type=tf.int32):
-    """Deal with dynamic shape in tensorflow cleanly."""
     static = x.shape.as_list()
     dynamic = tf.shape(x, out_type=out_type)
     return [dynamic[i] if s is None else s for i, s in enumerate(static)]
@@ -54,12 +51,6 @@ class Conv2dSubsampling(tf.keras.layers.Layer):
             bias_regularizer=bias_regularizer
         )
         self.conv_2_bn =layers.BatchNormalization(name='conv_2_bn')
-        # self.conv3 = tf.keras.layers.Conv2D(
-        #     filters=filters, kernel_size=kernel_size,
-        #     strides=strides, padding="same", name=f"{name}_3",
-        #     kernel_regularizer=kernel_regularizer,
-        #     bias_regularizer=bias_regularizer
-        # )
         self.time_reduction_factor = self.conv1.strides[0] + self.conv2.strides[0] #+self.conv3.strides[0]
         self.pos_emb = layers.Embedding(input_dim=500, output_dim=100)
 
@@ -79,7 +70,6 @@ class Conv2dSubsampling(tf.keras.layers.Layer):
         return outputs 
 
 
-## Transformer Encoder Layer
 class TransformerEncoder(layers.Layer):
     def __init__(self, embed_dim, num_heads, feed_forward_dim, rate=0.0):
         super().__init__()
@@ -104,7 +94,6 @@ class TransformerEncoder(layers.Layer):
         return self.layernorm2(out1 + ffn_output)
 
 
-# Transformer Decoder Layer
 class TransformerDecoder(layers.Layer):
     def __init__(self, embed_dim, num_heads, feed_forward_dim, dropout_rate=0.3):
         super().__init__()
@@ -126,11 +115,6 @@ class TransformerDecoder(layers.Layer):
         )
 
     def causal_attention_mask(self, batch_size, n_dest, n_src, dtype):
-        """Masks the upper half of the dot product matrix in self attention.
-
-        This prevents flow of information from future tokens to current token.
-        1's in the lower triangle, counting from the lower right corner.
-        """
         i = tf.range(n_dest)[:, None]
         j = tf.range(n_src)
         m = i >= j - n_src + n_dest
@@ -169,8 +153,6 @@ class EncoderStack(tf.keras.layers.Layer):
             x = layer(x, training=training)
         return x
 
-
-## Transformer model
 
 class Transformer(keras.Model):
     def __init__(
@@ -231,7 +213,6 @@ class Transformer(keras.Model):
         return [self.loss_metric]
 
     def train_step(self, batch):
-        """Processes one batch inside model.fit()."""
         source = batch["source"]
         target = batch["target"]
         dec_input = target[:, :-1]
@@ -260,7 +241,6 @@ class Transformer(keras.Model):
         return {"loss": self.loss_metric.result()}
 
     def generate(self, source, target_start_token_idx):
-        """Performs inference over one batch of inputs using greedy decoding."""
         bs = tf.shape(source)[0]
         enc = self.encoder(source)
         dec_input = tf.ones((bs, 1), dtype=tf.int32) * target_start_token_idx

@@ -7,15 +7,11 @@ import numpy as np
 import os
 
 
-
-# string.printable[:95]
-# '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ '
 class VectorizeChar:
     def __init__(self, max_len=100):
         self.vocab = (
             ["-", "#", "<", ">"]
             + list(string.printable[:95].replace('-','').replace('#','').replace('<','').replace('>',''))
-            # + [" ", ".", ",", "?"]
         )
         self.max_len = max_len
         self.char_to_idx = {}
@@ -23,7 +19,6 @@ class VectorizeChar:
             self.char_to_idx[ch] = i
 
     def __call__(self, text):
-        # text = text[: self.max_len - 2]
         text = "<" + text + ">"
         pad_len = self.max_len - len(text)
         return [self.char_to_idx.get(ch, 1) for ch in text] #+ [0] * pad_len
@@ -81,7 +76,6 @@ class CustomSchedule(keras.optimizers.schedules.LearningRateSchedule):
         self.steps_per_epoch = steps_per_epoch
 
     def calculate_lr(self, epoch):
-        """ linear warm up - linear decay """
         epoch = tf.cast(epoch, tf.float32)
 
         warmup_lr = (
@@ -104,7 +98,6 @@ class CustomSchedule(keras.optimizers.schedules.LearningRateSchedule):
 
 
 def get_data(df: pd.DataFrame)->list:
-    """ returns mapping of handwriting paths and transcription texts """
     data = []
     for  idx,row in df.iterrows():
       data.append({"audio": row['filename'], "text": row['transcript'].strip()})
@@ -131,7 +124,6 @@ def path_to_features(path):
 
 
 def txt_to_labels(txt:str, vectorizer: VectorizeChar):
-  """Convert a text to a array of labels."""
   return tf.convert_to_tensor(vectorizer(txt),dtype=tf.int64)
 
 
@@ -139,13 +131,10 @@ def txt_to_labels(txt:str, vectorizer: VectorizeChar):
 
 
 
-#  for evaluation
-
 def levenshtein(a, b):
     "Calculates the Levenshtein distance between a and b."
     n, m = len(a), len(b)
     if n > m:
-        # Make sure n <= m, to use O(min(n,m)) space
         a, b = b, a
         n, m = m, n
 
